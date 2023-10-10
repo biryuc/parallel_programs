@@ -1,6 +1,3 @@
-﻿// calculate_pi.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
-
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -10,185 +7,114 @@
 #include <string>
 #include <chrono>
 #include <malloc.h>
-#include <math.h>
+#define _CRT_SECURE_NO_WARNINGS
 #include <map>
 #include <set>
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 
 using namespace std;
 //TASK1
-double calculate_pi(int N) {
+double calculate_pi(long long int N) {
     double pi = 0;
 
-    for (int i = 0; i < N; i++) {
-        pi += 4 * (pow(-1, i) / (2 * i + 1));
+    for (long long i = 0; i < N; i++) {
+        pi += (pow(-1, i) / (2 * i + 1));
     }
-    return pi;
+    return 4*pi;
 }
 
 
-//TASK2
-int* blas_daxpy(int* x,int* y,int vector_size,int a) {
-    for (int i = 0; i < vector_size; i++) {
-        y[i] = a * x[i] + y[i];
-    }
+double calculate_pi_omp(long long int N) {
+    double pi = 0;
+   // schedule(guided,1 )
+    #pragma omp parallel for default(none) shared(N) reduction(+:pi) 
+        for (long long i = 0; i < N; i++) {
+            pi += (pow(-1, i) / (2 * i + 1));
 
-    return y;
-}
-
-//TASK3
-/* первая матрица, размером k столбцов на m строк*/
-/* вторая матрица, размером n столбцов на k строк*/
-//принцип локальности
-void matrix_mult(float* matrix, float* matrix1, float* matrix2, int n, int k, int m) {
-
-    float tmp = 0.0;
-
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
-            matrix[i * n + j] = 0;
-            for (int f = 0; f < k; f++) {
-                tmp = matrix1[i * k + f] * matrix2[f * n + j];
-                matrix[i * n + j] += tmp;
-            }
         }
-    }
 
-
-}
-
-//TASK4
-
-float* A_vec_mult(int*A,int N,float* vector) {
-    int tmp = 0;
-    float* res_vec = new(nothrow) float[N];
-    if (res_vec == nullptr) {
-        fprintf(stderr, "Memory cannot be allocated");
-        exit(-1);
-    }
-    for (int i = 0; i < N; i++) {
-        for (int k = 0; k < N; k++) {
-            tmp += A[i * N + k] * vector[k];
-            res_vec[i] = tmp;
-        }
-    }
-   
-
-    return res_vec;
-}
-float* slau_method(int N,float epsilon) {
-    float* tmp = new(nothrow) float[N];
-    if (tmp == nullptr) {
-        fprintf(stderr, "Memory cannot be allocated");
-        exit(-1);
-    }
     
-    
-    int* A = new(nothrow) int[N * N];
-    if (A == nullptr) {
-        fprintf(stderr, "Memory cannot be allocated");
-        exit(-1);
-    }
-    int* b = new(nothrow) int[N];
-    if (b == nullptr) {
-        fprintf(stderr, "Memory cannot be allocated");
-        exit(-1);
-    }
-    float* x = new(nothrow) float[N];
-    if (x == nullptr) {
-        fprintf(stderr, "Memory cannot be allocated");
-        exit(-1);
-    }
-    float* y = new(nothrow) float[N];
-    if (y == nullptr) {
-        fprintf(stderr, "Memory cannot be allocated");
-        exit(-1);
-    }
-
-    //Инициализация
-    for (int i = 0; i < N; i++) {
-        b[i] = N + 1;
-        x[i] = 0;
-        y[i] = 0;
-        for (int j = 0; j < N; j++) {
-            if (i == j) {
-                A[i * N + j] = 2;
-            }
-            else {
-                A[i * N + j] = 1;
-            }
-        }
-    }
-    float criteria = 2*epsilon;
-    float tau = 0;
-    float sum0 = 0;
-    float sum1 = 0;
-
-    while (criteria > epsilon) {
-        //Y = AX - b
-        for (int i = 0; i < N; i++) {
-            tmp = A_vec_mult(A, N, x);
-            y[i] = tmp[i] - b[i];
-
-        }
-        //TAU
-        tmp = A_vec_mult(A, N, y);
-
-        for (int i = 0; i < N; i++) {
-            sum0 += y[i] * tmp[i];
-            sum1 += tmp[i] * tmp[i];
-        }
-        if (sum1 != 0) {
-            tau = sum0 / sum1;
-            sum0 = 0;
-            sum1 = 0;
-        }
-
-
-        //X^n
-        for (int i = 0; i < N; i++) {
-            x[i] = x[i] - tau * y[i];
-        }
-
-        //CRITERIA
-        float num0 = 0;
-        float num1 = 0;
-        tmp = A_vec_mult(A, N, x);
-        for (int i = 0; i < N; i++) {
-            num0 += pow(tmp[i] - b[i], 2);
-            num1 += pow(b[i], 2);
-        }
-        num0 = sqrt(num0);
-        num1 = sqrt(num1);
-        if (num1 != 0) {
-            criteria = num0 / num1;
-            num0 = 0;
-            num1 = 0;
-        }
-    }
-
    
-    return x;
-
+    return 4 * pi;
 }
 
-int main()
+
+int main(int argc , char* argv[])
 {
-    int N = 3;
-    float epsilon = 0.5;
-    float* x = new(nothrow) float[N];
-    if (x == nullptr) {
-        fprintf(stderr, "Memory cannot be allocated");
-        exit(-1);
+
+    if (argc < 3) {
+        
+        fprintf(stderr, "Enter the arguments in the format: program.exe number_iteration num_thread");
+        return 1;
     }
 
+    long long int N = 0;
+    int i = 0;
+    int num_thread = 0;
 
-    x = slau_method(N, epsilon);
+    i = sscanf_s(argv[1], "%lld", &N);
+    if (i != 1) {
+        fprintf(stderr, "The number of iterations must be an integer");
+        printf("%d",i);
+        return 1;
+    }
 
-    for (int i = 0; i < N; i++) {
-        printf("%f\n", x[i]);
+    i = sscanf_s(argv[2], "%d", &num_thread);
+    if (i != 1) {
+        fprintf(stderr, "The number of iterations must be an integer");
+        printf("%d", i);
+        return 1;
+    }
+
+   
+    double pi = 0;
+    double start = 0;
+    double end = 0;
+
+    double pi_omp = 0;
+    double start_omp = 0;
+    double end_omp = 0;
+   // int num_threads = 0;
+
+   
+    start = omp_get_wtime();
+    pi = calculate_pi(N);
+    end = omp_get_wtime();
+
+    if (num_thread > 8 || num_thread < 1) {
+        num_thread = omp_get_max_threads();
+        omp_set_num_threads(num_thread);
+    }
+    else {
+        omp_set_num_threads(num_thread);
+    }
+    
+
+    start_omp = omp_get_wtime();
+    pi_omp = calculate_pi_omp(N);   
+    end_omp = omp_get_wtime();
+
+
+    int k = 0;
+    if (fabs(pi - M_PI) > 0.01 || fabs(pi_omp - M_PI) > 0.01) {
+       
+        k = 1;
+        printf("%lld\t%lf\t%lf\t%d\t%d\n", N, end - start, end_omp - start_omp, k, num_thread);
+        return 1;
+    }
+    else {
+        k = 0;
+        printf("%lld\t%lf\t%lf\t%d\t%d\n", N, end - start, end_omp - start_omp, k, num_thread);
     }
 
     return 0;
 }
 
 
+//sscanf - возвращает количество сконвертированных значений
+
+//omp_get_wtime()
+//тестирование проводить в скрипте и записывать в файл , потом строить график в зависимости от количества потока, также в таблицу выводить 0 если правильно отработало 
+//массив ptr_diff_t или size_t
